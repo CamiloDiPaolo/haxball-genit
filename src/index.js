@@ -36,7 +36,17 @@ const main = async () => {
     const page = await browser.newPage()
     await page.emulate(DEVICE)
 
-    // 3) load custom hooks
+    // 3) load maps
+    let maps = [];
+    const mapsFiles = fs.readdirSync(path.join(__dirname, 'maps'));
+    await Promise.all(mapsFiles.map(async (fileName) => {
+        const mapPath = path.join(__dirname, `maps/${fileName}`)
+
+        const map = (await import(mapPath)).default
+        maps.push(JSON.stringify(map))
+    }))
+
+    // 4) load custom hooks
     let hooks = [];
     const hooksFiles = fs.readdirSync(path.join(__dirname, 'hooks'));
     await Promise.all(hooksFiles.map(async (fileName) => {
@@ -46,10 +56,8 @@ const main = async () => {
 
         if (hooks.some(({ event }) => hook.event === event)) throw new Error('Duplicate hook event')
 
-        // fix this: if the hook dont have a return then not trigger the event
         hooks.push(...hook);
     }))
-
 
     const clientHooksGroupedByEvent = hooks.reduce((acc, hook) => {
         hook.roomEvents.forEach(event => {
@@ -67,21 +75,21 @@ const main = async () => {
         return acc
     }, {})
 
-    // 4) initialize haxball page
+    // 5) initialize haxball page
     await initializeHaxballPage(page, hooks)
 
-    // 5) load global data/config
+    // 6) load global data/config
     await page.addScriptTag({ path: path.join(__dirname, 'config.js') })
 
-    // 6) open room
-    await page.evaluate(openRoom, clientHooksGroupedByEvent)
+    // 7) open room
+    await page.evaluate(openRoom, clientHooksGroupedByEvent, maps)
 
-    // 7) get room link
+    // 8) get room link
     const haxframe = await getHaxIframe(page);
     const roomLink = await getRoomLink(page, haxframe, 10000);
 
 
-    // 8) enjoy the hax
+    // 9) enjoy the hax
     console.info('ROOM LINK GENERATED: ', roomLink)
 }
 
@@ -113,7 +121,7 @@ const getHaxIframe = async (page) => {
 }
 
 // Haxball side code
-const openRoom = async (hooksGroupedByEvent) => {
+const openRoom = async (hooksGroupedByEvent, maps) => {
     const room = HBInit(
         {
             roomName: "My room",
@@ -123,7 +131,7 @@ const openRoom = async (hooksGroupedByEvent) => {
         }
     )
 
-    // CUSTOM HOOKS START
+    // Hooks load
     Object.entries(hooksGroupedByEvent).forEach(([event, hook]) => {
         room[event] = () => {
             const returnData = hook.clientHooks.map(fnString => eval(`const fn = ${fnString}; fn()`))
@@ -135,7 +143,12 @@ const openRoom = async (hooksGroupedByEvent) => {
             })
         }
     })
-    // CUSTOM HOOKS END
+    // Hooks load end
+
+    // Maps load
+    // TODO: add command for select maps
+    room.setCustomStadium(maps[0])
+    // Maps load end
 
     room.onRoomLink = () => {
         window.hasLink = true;
