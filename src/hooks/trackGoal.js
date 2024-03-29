@@ -1,5 +1,4 @@
 function storeLastToucher(room, player) {
-    console.log('PLAYER KICK BALL: ', player.name)
     if (
         window.hax.roomStats.lastPlayerKicked &&
         window.hax.roomStats.lastPlayerKicked.name !== player.name

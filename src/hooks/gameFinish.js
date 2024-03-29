@@ -38,38 +38,13 @@ const saveStats = function (room, scores) {
     return stats
 }
 
-/*
-    matchStats: {
-                goals: [],
-                bluePossession: 0, // calc on ticks
-                redPossession: 0,
-            }
-    exports.up = pgm => {
-    pgm.createTable('matchs', {
-        id: 'id',
-        createdAt: {
-            type: 'timestamp',
-            notNull: true,
-            default: pgm.func('current_timestamp')
-        },
-        time: { type: 'integer', notNull: true },
-        players: { type: 'json', notNull: true },
-        redPossession: { type: 'integer', notNull: true },
-        bluePossession: { type: 'integer', notNull: true },
-        redGoals: { type: 'integer', notNull: true },
-        blueGoals: { type: 'integer', notNull: true },
-        goals: { type: 'json', notNull: true }
-    })
-}
-*/
-
 const serverHook = async (stats) => {
     try {
         const client = new Client()
         await client.connect()
 
         const query = {
-            text: `INSERT INTO matchs(blue_goals, blue_possession, red_goals, red_possession, time, players, goals) VALUES($1, $2, $3, $4, $5, $6, $7)`,
+            text: `INSERT INTO matchs(blue_goals, blue_possession, red_goals, red_possession, time, players, goals, shots, head_off, intercepts) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
             values: [
                 stats.blueGoals,
                 stats.bluePossession,
@@ -78,6 +53,9 @@ const serverHook = async (stats) => {
                 stats.time,
                 JSON.stringify(stats.players),
                 JSON.stringify(stats.goals),
+                JSON.stringify(stats.shots),
+                JSON.stringify(stats.headOff),
+                JSON.stringify(stats.intercepts),
             ],
         }
 

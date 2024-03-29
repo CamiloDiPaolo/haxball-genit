@@ -12,7 +12,7 @@ const __dirname = new URL('.', import.meta.url).pathname;
 const PORT = 8000;
 
 // get token from: https://www.haxball.com/headlesstoken
-const TOKEN = 'thr1.AAAAAGYGLQ_5uI90tNPbFw.Lemtf_cAyCk'
+const TOKEN = 'thr1.AAAAAGYG6_rxOtdtakLx2w.3bSLLhbkavU'
 
 const DEVICE = {
     name: 'CUSTOM DEVICE',
@@ -174,7 +174,7 @@ const openRoom = async (token, hooksGroupedByEvent, commands, maps) => {
         if (!command) return;
 
         const fn = new Function(`{ return ${command.handler} }`)
-        const data = fn.call(null).call(null, room, player, message)
+        const data = fn.call(null).call(null, room, player, args)
 
         if (!data) return;
 
@@ -203,9 +203,19 @@ const openRoom = async (token, hooksGroupedByEvent, commands, maps) => {
     console.info('Custom hooks loaded')
 
     // Maps load
-    // TODO: add command for select maps
+    maps.forEach(map => {
+        window.hax.maps[JSON.parse(map).name] = map
+    })
     room.setCustomStadium(maps[0])
+    console.log(
+        JSON.stringify(
+            JSON.parse(maps[0]).goals.find(goal => goal.team === 'blue')
+        )
+    )
+    window.hax.goals.blue = JSON.stringify(JSON.parse(maps[0]).goals.find(goal => goal.team === 'blue'))
+    window.hax.goals.red = JSON.stringify(JSON.parse(maps[0]).goals.find(goal => goal.team === 'red'))
     // Maps load end
+
     console.info('Default map set: ', JSON.parse(maps[0]).name)
 
     room.onRoomLink = () => {

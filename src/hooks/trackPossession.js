@@ -11,7 +11,7 @@ const storePossession = function (room) {
 
         const distanceToBall = pointDistance(player.position, ballPosition)
 
-        if (distanceToBall > window.hax.config.triggerDistance) return
+        if (distanceToBall > window.hax.config.TRIGGER_DISTANCE) return
 
         window.hax.roomStats.lastPlayerTouched = player
         if (player.team === window.hax.config.RED_TEAM_ID)
