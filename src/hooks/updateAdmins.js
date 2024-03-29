@@ -1,4 +1,4 @@
-const updateAdmins = () => {
+const updateAdmins = (room) => {
     // Get all players
     const players = room.getPlayerList()
 
@@ -8,7 +8,7 @@ const updateAdmins = () => {
 
     room.setPlayerAdmin(players[0].id, true) // Give admin to the first non admin player in the list
 
-    return { status: 'success', message: 'admin update', newAdmin: players[0] }
+    return { message: 'admin update', newAdmin: players[0] }
 }
 
 const serverHook = (e) => {

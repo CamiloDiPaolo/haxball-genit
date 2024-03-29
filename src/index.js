@@ -1,14 +1,18 @@
+import 'dotenv/config'
 import puppeteer from 'puppeteer'
 import path from 'path'
 import fs from 'fs'
 import { URL } from 'url'
 
+import pg from 'pg'
+
+const { Client } = pg
 const __dirname = new URL('.', import.meta.url).pathname;
 
 const PORT = 8000;
 
 // get token from: https://www.haxball.com/headlesstoken
-const TOKEN = 'thr1.AAAAAGYEveqQbjmndc46-g.QEE91kFZjGs'
+const TOKEN = 'thr1.AAAAAGYGLQ_5uI90tNPbFw.Lemtf_cAyCk'
 
 const DEVICE = {
     name: 'CUSTOM DEVICE',
@@ -35,6 +39,9 @@ const main = async () => {
     // 2) create a new page
     const page = await browser.newPage()
     await page.emulate(DEVICE)
+    // added listener for client side console.log function
+    page.on('console', msg => console.log(`[BROWSER]: ${msg.text()}`))
+        .on('pageerror', ({ message }) => console.log(`[BROWSER ERROR]: ${message}`))
 
     // 3) load maps
     let maps = [];
@@ -46,7 +53,21 @@ const main = async () => {
         maps.push(JSON.stringify(map))
     }))
 
-    // 4) load custom hooks
+    // 4) load commands
+    let commands = [];
+    const commandsFiles = fs.readdirSync(path.join(__dirname, 'commands'));
+    await Promise.all(commandsFiles.map(async (fileName) => {
+        const commandPath = path.join(__dirname, `commands/${fileName}`)
+        const commandName = fileName.replace('.js', '')
+
+        const command = (await import(commandPath)).default
+
+        if (commands.some(({ name }) => name === commandName)) throw new Error('Duplicate command')
+
+        commands.push({ name: commandName, handler: String(command.handler), serverAction: command.serverAction });
+    }))
+
+    // 5) load custom hooks
     let hooks = [];
     const hooksFiles = fs.readdirSync(path.join(__dirname, 'hooks'));
     await Promise.all(hooksFiles.map(async (fileName) => {
@@ -75,22 +96,33 @@ const main = async () => {
         return acc
     }, {})
 
-    // 5) initialize haxball page
-    await initializeHaxballPage(page, hooks)
+    // 6) initialize haxball page
+    await initializeHaxballPage(page, hooks, commands)
 
-    // 6) load global data/config
+    // 7) load global data/config
     await page.addScriptTag({ path: path.join(__dirname, 'config.js') })
 
-    // 7) open room
-    await page.evaluate(openRoom, clientHooksGroupedByEvent, maps)
+    // 8) open room
+    await page.evaluate(openRoom, TOKEN, clientHooksGroupedByEvent, commands, maps)
 
-    // 8) get room link
+    // 9) get room link
     const haxframe = await getHaxIframe(page);
     const roomLink = await getRoomLink(page, haxframe, 10000);
 
 
-    // 9) enjoy the hax
-    console.info('ROOM LINK GENERATED: ', roomLink)
+    // 10) enjoy the hax
+    console.info('[SERVER]: ROOM LINK GENERATED: ', roomLink)
+
+    // 11) check db connection
+    try {
+        const client = new Client()
+        await client.connect()
+        await client.query('SELECT NOW()')
+        await client.end()
+        console.info('[SERVER]: DB CONNECTED')
+    } catch (err) {
+        console.info('[SERVER]: Error conectando con la db, no sera posible guardar las estadisticas')
+    }
 }
 
 const getRoomLink = async (page, haxframe, timeout) => {
@@ -121,41 +153,69 @@ const getHaxIframe = async (page) => {
 }
 
 // Haxball side code
-const openRoom = async (hooksGroupedByEvent, maps) => {
+const openRoom = async (token, hooksGroupedByEvent, commands, maps) => {
     const room = HBInit(
         {
-            roomName: "My room",
-            maxPlayers: 16,
+            roomName: "Gen IT @ Official Server",
+            public: false,
+            maxPlayers: 12,
             noPlayer: true,
-            token: 'thr1.AAAAAGYEveqQbjmndc46-g.QEE91kFZjGs'
+            // playerName: "🎙️RELATOR",
+            token
         }
     )
 
+    // Commands load
+    room.onPlayerChat = function(player, message) {
+        const [commandName, ...args] = message.split(' ')
+
+        const command = commands.find(({ name }) => `!${name}` === commandName)
+
+        if (!command) return;
+
+        const fn = new Function(`{ return ${command.handler} }`)
+        const data = fn.call(null).call(null, room, player, message)
+
+        if (!data) return;
+
+        sendBrowserAction({ event: `COMMAND:${commandName}`, data })
+    }
+    // Commands load end
+    console.info('Custom commands loaded')
+
     // Hooks load
     Object.entries(hooksGroupedByEvent).forEach(([event, hook]) => {
-        room[event] = () => {
-            const returnData = hook.clientHooks.map(fnString => eval(`const fn = ${fnString}; fn()`))
+        room[event] = (e) => {
+            // const returnData = hook.clientHooks.map(fnString => eval(`const fn = ${fnString}; fn(${e})`))
+            const returnData = hook.clientHooks.map(fnString => {
+                const fn = new Function(`{ return ${fnString} }`)
+                return fn.call(null).call(null, room, e)
+            })
 
             hook.emitEvent.forEach((serverEvent, i) => {
-                if (!returnData[i] || returnData[i] === 'null') return;
+                if (!returnData[i] || returnData[i] === 'null' || returnData[i] === 'undefined') return;
 
                 sendBrowserAction({ event: serverEvent, data: returnData[i] })
             })
         }
     })
     // Hooks load end
+    console.info('Custom hooks loaded')
 
     // Maps load
     // TODO: add command for select maps
     room.setCustomStadium(maps[0])
     // Maps load end
+    console.info('Default map set: ', JSON.parse(maps[0]).name)
 
     room.onRoomLink = () => {
         window.hasLink = true;
     };
+
+    console.info('Room started')
 }
 
-const initializeHaxballPage = async (page, hooks) => {
+const initializeHaxballPage = async (page, hooks, commands) => {
     // 1. navigate to haxball headless page
     page.goto('https://haxball.com/headless')
 
@@ -167,11 +227,16 @@ const initializeHaxballPage = async (page, hooks) => {
         'sendBrowserAction',
 
         (e) => {
-            if (!hooks.some(({ event }) => e.event === event))
-                return console.info(`[${e.event}](no registrado): ${JSON.stringify(e)}`)
+            const hook = hooks.find(({ event }) => e.event === event)
+            const command = commands.find(({ name }) => e.event === `COMMAND:!${name}`)
 
-            console.info(`[${e.event}]: ${JSON.stringify(e)}`)
-            hooks.find(({ event }) => e.event === event).serverHook(e.data)
+            if (hook)
+                return hook.serverHook(e.data)
+            if (command)
+                return command.serverAction(e.data)
+
+            return console.info(`[${e.event}(NOT REGISTER)]: ${JSON.stringify(e)}`)
+
         }
     );
 }

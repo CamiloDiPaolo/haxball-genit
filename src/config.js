@@ -8,11 +8,20 @@ Object.assign(
         return {
             test: 'test global',
             config: {
-                triggerDistance: 25.01 //radio de la pelota + radio de jugador + 0.01
+                triggerDistance: 25.01, //radio de la pelota + radio de jugador + 0.01
+                teams: ["⚪️", "🔴", "🔵"],
+                RED_TEAM_ID: 1,
+                BLUE_TEAM_ID: 2
             },
             roomStats: {
                 lastPlayerTouched: undefined,
-                teams: ["⚪️", "🔴", "🔵"],
+                lastPlayerKicked: undefined,
+                secondToLastPlayerKicked: undefined,
+            },
+            matchStats: {
+                goals: [],
+                bluePossession: 0, // calc on ticks
+                redPossession: 0,
             }
         }
     })()
