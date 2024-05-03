@@ -158,7 +158,7 @@ const openRoom = async (token, hooksGroupedByEvent, commands, maps) => {
         {
             roomName: "Gen IT @ Official Server",
             public: false,
-            maxPlayers: 12,
+            maxPlayers: 20,
             noPlayer: true,
             // playerName: "🎙️RELATOR",
             token
