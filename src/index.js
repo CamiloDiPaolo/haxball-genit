@@ -11,8 +11,7 @@ const __dirname = new URL('.', import.meta.url).pathname;
 
 const PORT = 8000;
 
-// get token from: https://www.haxball.com/headlesstoken
-const TOKEN = 'thr1.AAAAAGYG6_rxOtdtakLx2w.3bSLLhbkavU'
+const TOKEN = process.argv[2]
 
 const DEVICE = {
     name: 'CUSTOM DEVICE',
@@ -108,6 +107,7 @@ const main = async () => {
     // 9) get room link
     const haxframe = await getHaxIframe(page);
     const roomLink = await getRoomLink(page, haxframe, 10000);
+
 
 
     // 10) enjoy the hax
