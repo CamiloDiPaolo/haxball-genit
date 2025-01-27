@@ -1,7 +1,8 @@
 import pg from 'pg'
+import { insertPlayers } from '../db/players.js'
 const { Client } = pg
 
-const saveStats = function (room, scores) {
+const saveStats = function(room, scores) {
     const players = room.getPlayerList()
 
     const stats = {
@@ -43,23 +44,102 @@ const serverHook = async (stats) => {
         const client = new Client()
         await client.connect()
 
-        const query = {
-            text: `INSERT INTO matchs(blue_goals, blue_possession, red_goals, red_possession, time, players, goals, shots, head_off, intercepts) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+
+        // insert user if not found
+        const playerIdsAndNames = await insertPlayers(client, stats.players)
+
+        // create match
+        const matchId = (await client.query({
+            text: `INSERT INTO matchs(blue_goals, blue_possession, red_goals, red_possession, time) VALUES($1, $2, $3, $4, $5) RETURNING id`,
             values: [
                 stats.blueGoals,
                 stats.bluePossession,
                 stats.redGoals,
                 stats.redPossession,
-                stats.time,
-                JSON.stringify(stats.players),
-                JSON.stringify(stats.goals),
-                JSON.stringify(stats.shots),
-                JSON.stringify(stats.headOff),
-                JSON.stringify(stats.intercepts),
+                stats.time
             ],
-        }
+        })).rows[0].id
 
-        await client.query(query)
+        // associate match with players
+        await Promise.all(playerIdsAndNames.map(async ({ id, name }) => {
+            await client.query({
+                text: `INSERT INTO players_in_match(match_id, player_id, team_id) VALUES($1, $2, $3)`,
+                values: [
+                    matchId,
+                    id,
+                    stats.players.find((p) => p.name === name).team
+                ],
+            })
+        }))
+
+        // store goals
+        await Promise.all(stats.goals.map(async (goal) => {
+            console.log('STRIKER: ', playerIdsAndNames.find(({ name }) => name === goal.player.name))
+            const { id: strikerId } = playerIdsAndNames.find(({ name }) => name === goal.player.name)
+            const { id: assistantId } = playerIdsAndNames.find(({ name }) => goal.assistance && name === goal.assistance.name) ?? { id: null }
+
+            await client.query({
+                text: `INSERT INTO goals(time, distance, hax_degree, position, team_id, match_id, player_id, player_assistant_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
+                values: [
+                    goal.time,
+                    goal.distance,
+                    goal.haxDegree,
+                    goal.player.position,
+                    goal.player.team,
+                    matchId,
+                    strikerId,
+                    assistantId ?? null
+                ],
+            })
+        }))
+
+        // store shots
+        await Promise.all(stats.shots.map(async (goal) => {
+            const { id: strikerId } = playerIdsAndNames.find(({ name }) => name === goal.player.name)
+
+            await client.query({
+                text: `INSERT INTO shots(time, distance, hax_degree, position, team_id, match_id, player_id) VALUES($1, $2, $3, $4, $5, $6, $7)`,
+                values: [
+                    goal.time,
+                    goal.distance,
+                    goal.haxDegree,
+                    goal.player.position,
+                    goal.player.team,
+                    matchId,
+                    strikerId,
+                ],
+            })
+        }))
+
+        // store headOff
+        await Promise.all(stats.shots.map(async (goal) => {
+            const { id: strikerId } = playerIdsAndNames.find(({ name }) => name === goal.player.name)
+
+            await client.query({
+                text: `INSERT INTO head_off(time, position, match_id, player_id) VALUES($1, $2, $3, $4)`,
+                values: [
+                    goal.time,
+                    goal.player.position,
+                    matchId,
+                    strikerId,
+                ],
+            })
+        }))
+
+        // store intercepts
+        await Promise.all(stats.shots.map(async (goal) => {
+            const { id: strikerId } = playerIdsAndNames.find(({ name }) => name === goal.player.name)
+
+            await client.query({
+                text: `INSERT INTO intercepts(time, position, match_id, player_id) VALUES($1, $2, $3, $4)`,
+                values: [
+                    goal.time,
+                    goal.player.position,
+                    matchId,
+                    strikerId,
+                ],
+            })
+        }))
 
         await client.end()
 
@@ -77,3 +157,4 @@ export default [
         serverHook,
     },
 ]
+

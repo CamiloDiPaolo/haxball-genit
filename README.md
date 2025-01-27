@@ -6,6 +6,10 @@ This repo create a haxball room and allow customization mannualy.
 
 In the config.js file you can add some global data for use it  in the hooks.
 
+## Run
+
+For run the server you can use `node src/index.js [headless token]`
+
 ## Command
 
 Custom commands are added in the commands folder. The name of te file is the name of the command ex: ping.js -> !ping. 
@@ -72,8 +76,3 @@ npm run migrate:create [name]
 # run migrations
 npm run migrate:run
 ```
-
-## Todo List
-
-- level system
-

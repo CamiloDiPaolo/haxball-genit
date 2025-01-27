@@ -1,4 +1,4 @@
-const storeGoalIntent = function (room, player) {
+const storeGoalIntent = function(room, player) {
     function pointDistance(p1, p2) {
         return Math.hypot(p1.x - p2.x, p1.y - p2.y)
     }
@@ -41,30 +41,9 @@ const storeGoalIntent = function (room, player) {
         }
     }
 
-    /*
-const goal = {
-        player: lastPlayerKicked ?? lastPlayerTouched,
-        assistance: assistanceAgainst ? null : secondToLastPlayerKicked,
-        against,
-        time: scores.time,
-        distance: pointDistance(
-            lastPlayerKicked
-                ? lastPlayerKicked.position
-                : lastPlayerTouched.position,
-            ballPosition
-        ),
-        haxDegree: haxDegree(
-            ballPosition,
-            lastPlayerKicked
-                ? lastPlayerKicked.position
-                : lastPlayerTouched.position
-        ),
-    }
-    */
-
     const shoot = {
-        distance: pointDistance(player, ballPosition),
-        haxDegree: haxDegree(ballPosition, player),
+        distance: pointDistance(player.position, ballPosition),
+        haxDegree: haxDegree(ballPosition, player.position),
         time: scores.time,
         player,
     }
@@ -82,7 +61,7 @@ const goal = {
         window.hax.matchStats.shots.push(shoot)
 }
 
-const storeGoalKeeper = function (room) {
+const storeGoalKeeper = function(room) {
     function pointDistance(p1, p2) {
         return Math.hypot(p1.x - p2.x, p1.y - p2.y)
     }
@@ -158,19 +137,19 @@ const storeGoalKeeper = function (room) {
     if (goalKeeper.team === window.hax.config.RED_TEAM_ID) {
         isInGoalkeeperZone =
             goalKeeper.position.x <
-                redGoal.p0[0] + window.hax.config.GOALKEEPER_OFFSET_X &&
+            redGoal.p0[0] + window.hax.config.GOALKEEPER_OFFSET_X &&
             goalKeeper.position.y <
-                redGoal.p0[1] + window.hax.config.GOALKEEPER_OFFSET_Y &&
+            redGoal.p0[1] + window.hax.config.GOALKEEPER_OFFSET_Y &&
             goalKeeper.position.y >
-                redGoal.p1[1] - window.hax.config.GOALKEEPER_OFFSET_Y
+            redGoal.p1[1] - window.hax.config.GOALKEEPER_OFFSET_Y
     } else {
         isInGoalkeeperZone =
             goalKeeper.position.x >
-                blueGoal.p0[0] - window.hax.config.GOALKEEPER_OFFSET_X &&
+            blueGoal.p0[0] - window.hax.config.GOALKEEPER_OFFSET_X &&
             goalKeeper.position.y <
-                blueGoal.p0[1] + window.hax.config.GOALKEEPER_OFFSET_Y &&
+            blueGoal.p0[1] + window.hax.config.GOALKEEPER_OFFSET_Y &&
             goalKeeper.position.y >
-                blueGoal.p1[1] - window.hax.config.GOALKEEPER_OFFSET_Y
+            blueGoal.p1[1] - window.hax.config.GOALKEEPER_OFFSET_Y
     }
 
     if (isInGoalkeeperZone) {
@@ -186,7 +165,7 @@ const storeGoalKeeper = function (room) {
     }
 }
 
-const resetGoalIntent = function (room) {
+const resetGoalIntent = function(room) {
     window.hax.roomStats.posibleBlueGoal = false
     window.hax.roomStats.posibleRedGoal = false
 }
