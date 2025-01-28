@@ -55,7 +55,7 @@ const storeGoalIntent = function(room, player) {
         window.hax.matchStats.shots.push(shoot)
 
     if (
-        player.team === window.hax.config.BLUE &&
+        player.team === window.hax.config.BLUE_TEAM_ID &&
         window.hax.roomStats.posibleRedGoal
     )
         window.hax.matchStats.shots.push(shoot)
@@ -65,6 +65,7 @@ const storeGoalKeeper = function(room) {
     function pointDistance(p1, p2) {
         return Math.hypot(p1.x - p2.x, p1.y - p2.y)
     }
+
 
     if (
         !window.hax.roomStats.posibleRedGoal &&
@@ -80,6 +81,7 @@ const storeGoalKeeper = function(room) {
     const players = room.getPlayerList()
     const disc = room.getDiscProperties(0)
     let goalKeeper = null
+
 
     players
         .filter(({ team }) =>
@@ -98,6 +100,7 @@ const storeGoalKeeper = function(room) {
             let x = disc.x + disc.xspeed
             let y = disc.y + disc.yspeed
             let goal = false
+
 
             for (let i = 0; i < 10; i++) {
                 x = x + disc.xspeed * 5

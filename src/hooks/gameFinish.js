@@ -112,7 +112,7 @@ const serverHook = async (stats) => {
         }))
 
         // store headOff
-        await Promise.all(stats.shots.map(async (goal) => {
+        await Promise.all(stats.headOff.map(async (goal) => {
             const { id: strikerId } = playerIdsAndNames.find(({ name }) => name === goal.player.name)
 
             await client.query({
@@ -127,7 +127,7 @@ const serverHook = async (stats) => {
         }))
 
         // store intercepts
-        await Promise.all(stats.shots.map(async (goal) => {
+        await Promise.all(stats.intercepts.map(async (goal) => {
             const { id: strikerId } = playerIdsAndNames.find(({ name }) => name === goal.player.name)
 
             await client.query({

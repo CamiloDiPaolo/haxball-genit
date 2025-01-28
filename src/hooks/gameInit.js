@@ -1,8 +1,10 @@
-const resetStats = function (room) {
+const resetStats = function(room) {
     window.hax.roomStats.lastPlayerTouched = undefined
     window.hax.roomStats.secondToLastPlayerTouched = undefined
 
     window.hax.matchStats.goals = []
+    window.hax.matchStats.headOff = []
+    window.hax.matchStats.intercepts = []
     window.hax.matchStats.bluePossession = 0
     window.hax.matchStats.redPossession = 0
 

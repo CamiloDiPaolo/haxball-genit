@@ -1,10 +1,13 @@
 import 'dotenv/config'
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer-extra'
+import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import path from 'path'
 import fs from 'fs'
 import { URL } from 'url'
 
 import pg from 'pg'
+
+puppeteer.use(StealthPlugin());
 
 const { Client } = pg
 const __dirname = new URL('.', import.meta.url).pathname;
@@ -15,8 +18,7 @@ const TOKEN = process.argv[2]
 
 const DEVICE = {
     name: 'CUSTOM DEVICE',
-    userAgent:
-        'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3452.0 Mobile Safari/537.36',
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/127.0.0.0 Safari/537.36",
     viewport: {
         width: 1000,
         height: 1000,
@@ -37,6 +39,13 @@ const main = async () => {
 
     // 2) create a new page
     const page = await browser.newPage()
+    await page.setExtraHTTPHeaders({
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    })
     await page.emulate(DEVICE)
     // added listener for client side console.log function
     page.on('console', msg => console.log(`[BROWSER]: ${msg.text()}`))
